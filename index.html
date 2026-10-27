@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>マイ スケジュール</title>
+  <style>
+    /* ==========================================
+       マイ スケジュール style.css
+       ========================================== */
+    :root {
+      --bg: #f3f5fb;
+      --surface: #ffffff;
+      --surface-2: #f4f6fc;
+      --text: #1f2a44;
+      --muted: #6b7690;
+      --line: #e3e8f3;
+      --primary: #4f7cff;
+      --primary-ink: #ffffff;
+      --accent: #ff7a59;
+      --danger: #e5484d;
+      --hdr-1: #4f7cff;
+      --hdr-2: #7a6bff;
+
+      --c-juku: #f08a24;
+      --c-school: #3b82f6;
+      --c-club: #1fae7a;
+      --c-play: #a259f7;
+      --c-other: #8791a3;
+
+      --shadow: 0 4px 14px rgba(31, 42, 68, 0.08);
+      --radius: 16px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f1320;
+        --surface: #1a2033;
+        --surface-2: #232a42;
+        --text: #eef1fa;
+        --muted: #98a3c0;
+        --line: #2c3450;
+        --primary: #7a9cff;
+        --primary-ink: #0f1320;
+        --accent: #ff9478;
+        --danger: #ff6b70;
+        --hdr-1: #2d3f86;
+        --hdr-2: #4a3d99;
+        --shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo,
+        -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    [data-cat="塾"]    { --cat: var(--c-juku); }
+    [data-cat="学校"]  { --cat: var(--c-school); }
+    [data-cat="部活"]  { --cat: var(--c-club); }
+    [data-cat="遊び"]  { --cat: var(--c-play); }
+    [data-cat="その他"] { --cat: var(--c-other); }
+
+    .hidden { display: none !important; }
+
+    button { color: inherit; font-size: inherit; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app-container {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    }
+
+    /* ---------- ヘッダー ---------- */
+    .app-header {
+      background: linear-gradient(135deg, var(--hdr-1), var(--hdr-2));
+      color: #fff;
+      padding: 12px 16px 14px;
+      padding-top: calc(12px + env(safe-area-inset-top));
+      border-radius: 0 0 22px 22px;
+      box-shadow: var(--shadow);
+    }
+    .header-top { display: flex; justify-content: space-between; align-items: center; }
+    .app-header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; }
+    .test-btn {
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      color: #fff;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .test-btn:active { background: rgba(255, 255, 255, 0.4); }
+    .digital-clock { font-size: 0.85rem; margin-top: 6px; opacity: 0.92; text-align: center; font-variant-numeric: tabular-nums; }
+
+    .app-content { padding: 16px; flex: 1; }
+    .view-page { display: none; }
+    .view-page.active { display: block; }
+
+    /* ---------- 相棒 ---------- */
+    .partner-card { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
+    .partner-avatar {
+      position: relative;
+      flex: 0 0 auto;
+      width: 64px; height: 64px;
+      border-radius: 50%;
+      border: 3px solid var(--surface);
+      background: var(--surface-2);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      overflow: hidden;
+      display: grid; place-items: center;
+      font-size: 2rem;
+    }
+    .partner-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 20%;
+    }
+    .partner-bubble {
+      position: relative;
+      flex: 1;
+      text-align: left;
+      background: var(--surface);
+      border: none;
+      border-radius: 18px 18px 18px 4px;
+      padding: 12px 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      display: block;
+    }
+    .partner-name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .partner-name { font-size: 0.7rem; font-weight: 700; color: var(--primary); }
+    .partner-affinity { font-size: 0.68rem; font-weight: 800; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); padding: 1px 6px; border-radius: 10px; }
+    .partner-text { display: block; white-space: pre-wrap; line-height: 1.55; font-size: 0.92rem; }
+    .partner-bubble.pop { animation: bubble-pop 0.35s ease; }
+    @keyframes bubble-pop {
+      0% { transform: scale(0.96); }
+      60% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    /* ---------- スタンプ台紙 ---------- */
+    .stamp-board {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      box-shadow: var(--shadow);
+      background-image: radial-gradient(color-mix(in srgb, var(--accent) 10%, transparent) 1px, transparent 1px);
+      background-size: 14px 14px;
+      margin-bottom: 18px;
+    }
+    .stamp-board-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+    .stamp-board-head h2 { font-size: 0.95rem; }
+    .stamp-board-count { font-weight: 800; color: var(--accent); }
+    .stamp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .stamp-slot {
+      aspect-ratio: 1;
+      border: 2px dashed var(--line);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 1.5rem;
+      color: var(--line);
+    }
+    .stamp-slot.filled {
+      border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+      background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+      color: inherit;
+    }
+    .stamp-slot.new { animation: stamp-down 0.55s ease; }
+    .stamp-total { font-size: 0.75rem; color: var(--muted); text-align: right; margin-top: 8px; }
+
+    /* ---------- カウントダウン ---------- */
+    .countdown-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .countdown-row:empty { display: none; }
+    .countdown-pill {
+      background: var(--surface);
+      border: 2px solid var(--cat, var(--primary));
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: var(--shadow);
+    }
+    .countdown-pill b { color: var(--cat, var(--primary)); font-size: 1rem; }
+
+    /* ---------- アコーディオン セクション ---------- */
+    .home-section { margin-bottom: 12px; }
+    .home-section-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      cursor: pointer;
+      user-select: none;
+    }
+    .home-section-head .left-title { display: flex; align-items: center; gap: 8px; }
+    .home-section-head h2 { font-size: 0.98rem; font-weight: 800; }
+    .home-section-head .sub { font-size: 0.75rem; color: var(--muted); }
+    .home-section-head .arrow { font-weight: 800; color: var(--muted); transition: transform 0.25s ease; }
+    .home-section.open .arrow { transform: rotate(180deg); }
+
+    .emphasis-tag {
+      font-size: 0.68rem; font-weight: 700; color: #fff;
+      background: var(--accent); border-radius: 999px; padding: 2px 8px;
+    }
+    .home-section.carry .home-section-head h2 { color: var(--accent); }
+
+    .task-list-wrap {
+      display: none;
+      padding-top: 8px;
+    }
+    .home-section.open .task-list-wrap { display: block; }
+
+    .task-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .task-row {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface);
+      border-left: 5px solid var(--cat, var(--line));
+      border-radius: 14px;
+      padding: 10px 10px 10px 12px;
+      min-height: 60px;
+      box-shadow: var(--shadow);
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+      transition: opacity 0.3s;
+    }
+    .task-row.done { opacity: 0.6; }
+    .cat-icon {
+      flex: 0 0 auto;
+      width: 38px; height: 38px; border-radius: 12px;
+      display: grid; place-items: center; font-size: 1.2rem;
+      background: var(--surface-2);
+      background: color-mix(in srgb, var(--cat) 18%, transparent);
+    }
+    .task-body { flex: 1; min-width: 0; }
+    .task-title { font-weight: 700; font-size: 0.95rem; }
+    .task-meta { font-size: 0.78rem; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .task-row.done .task-title { text-decoration: line-through; }
+
+    .stamp-btn {
+      flex: 0 0 auto;
+      min-width: 78px; min-height: 46px;
+      border: 2px dashed var(--accent);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    .stamp-btn:active { transform: scale(0.92); }
+    .stamp-btn.stamping { border-style: solid; background: var(--accent); color: #fff; animation: stamp-down 0.4s ease; }
+    @keyframes stamp-down {
+      0% { transform: scale(1.5) rotate(-12deg); opacity: 0.4; }
+      60% { transform: scale(0.9) rotate(4deg); opacity: 1; }
+      100% { transform: scale(1) rotate(0); }
+    }
+    .done-mark {
+      flex: 0 0 auto;
+      width: 46px; height: 46px; border-radius: 50%;
+      border: none; background: var(--surface-2);
+      font-size: 1.5rem; cursor: pointer;
+    }
+
+    .empty-card {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 20px 16px; text-align: center; color: var(--muted);
+      box-shadow: var(--shadow); line-height: 1.7; margin-bottom: 18px;
+    }
+    .hint { font-size: 0.75rem; color: var(--muted); text-align: center; margin: 10px 0; }
+
+    /* ---------- ストック・連続配置パレット ---------- */
+    .stock-palette-card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .stock-palette-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px;
+    }
+    .stock-palette-head h3 { font-size: 0.88rem; font-weight: 800; color: var(--text); }
+    .stock-palette-hint { font-size: 0.72rem; color: var(--muted); }
+
+    .stock-list { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .stock-item-btn {
+      flex: 0 0 auto;
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 7px 12px; border-radius: 999px;
+      border: 2px solid var(--cat, var(--primary));
+      background: var(--surface-2);
+      color: var(--text); font-weight: 800; font-size: 0.82rem;
+      cursor: pointer; transition: all 0.2s ease;
+      position: relative;
+    }
+    .stock-item-btn.selected {
+      background: var(--cat, var(--primary));
+      color: #fff;
+      box-shadow: 0 0 12px var(--cat, var(--primary));
+      transform: scale(1.04);
+    }
+    .stock-add-btn {
+      flex: 0 0 auto;
+      padding: 7px 12px; border-radius: 999px;
+      border: 2px dashed var(--line); background: transparent;
+      color: var(--muted); font-weight: 700; font-size: 0.8rem; cursor: pointer;
+    }
+    .mode-badge {
+      display: none; background: var(--accent); color: #fff;
+      font-size: 0.72rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;
+      align-items: center; gap: 6px; animation: pulse-badge 1.5s infinite alternate;
+    }
+    .mode-badge.active { display: inline-flex; }
+    @keyframes pulse-badge { from { opacity: 0.8; } to { opacity: 1; transform: scale(1.02); } }
+
+    /* ---------- カレンダー ---------- */
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .month-nav-btn {
+      background: var(--surface); border: none; border-radius: 12px;
+      min-width: 48px; min-height: 44px; font-weight: 800; cursor: pointer; box-shadow: var(--shadow);
+    }
+    .calendar-sub { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px; }
+    .today-btn {
+      background: var(--surface); border: 2px solid var(--primary); color: var(--primary);
+      border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer;
+    }
+    .calendar-legend { font-size: 0.68rem; color: var(--muted); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .calendar-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+    .lg-today { background: color-mix(in srgb, var(--primary) 25%, transparent); outline: 2px solid var(--primary); outline-offset: -2px; }
+    .lg-tomorrow { outline: 2px dashed var(--primary); outline-offset: -2px; }
+    .lg-hw { background: var(--accent); color: #fff; border-radius: 4px; padding: 0 3px; font-size: 0.6rem; }
+
+    .calendar-table {
+      width: 100%; border-collapse: separate; border-spacing: 0;
+      table-layout: fixed; background: var(--surface);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .calendar-table th, .calendar-table td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      vertical-align: top; padding: 3px; font-size: 0.75rem;
+    }
+    .calendar-table tr > *:last-child { border-right: none; }
+    .calendar-table tbody tr:last-child td { border-bottom: none; }
+    .calendar-table td { height: 68px; cursor: pointer; transition: background-color 0.15s; }
+    .calendar-table td.stamp-target { background: color-mix(in srgb, var(--accent) 15%, var(--surface)); }
+    .calendar-table th { padding: 8px 4px; background: var(--surface-2); text-align: center; }
+    .calendar-table th.sun, .calendar-table td.sun .day-number { color: #e5484d; }
+    .calendar-table th.sat, .calendar-table td.sat .day-number { color: #3b82f6; }
+    .calendar-table td.empty { background: var(--surface-2); cursor: default; opacity: 0.6; }
+    .calendar-table td.today { background: color-mix(in srgb, var(--primary) 16%, var(--surface)); box-shadow: inset 0 0 0 2px var(--primary); }
+    .calendar-table td.tomorrow { outline: 2px dashed var(--primary); outline-offset: -3px; }
+
+    .day-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .day-number { font-weight: 800; }
+    .hw-flag { background: var(--accent); color: #fff; border-radius: 4px; font-size: 0.55rem; font-weight: 800; padding: 0 3px; line-height: 1.4; }
+    .chips { display: flex; flex-wrap: wrap; gap: 2px; }
+    .cal-chip {
+      width: 16px; height: 16px; border-radius: 5px;
+      background: var(--cat);
+      display: grid; place-items: center;
+      font-size: 0.6rem; line-height: 1;
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    }
+    .cal-chip.done { opacity: 0.3; }
+    .cal-more { font-size: 0.6rem; color: var(--muted); align-self: center; }
+
+    /* ---------- ナビ & FAB ---------- */
+    .bottom-nav {
+      position: fixed; bottom: 0; width: 100%; max-width: 480px;
+      height: calc(62px + env(safe-area-inset-bottom));
+      padding-bottom: env(safe-area-inset-bottom);
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+      display: flex; z-index: 40;
+    }
+    .nav-tab-btn {
+      flex: 1; border: none; background: none;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: var(--muted); cursor: pointer;
+    }
+    .nav-tab-btn.active { color: var(--primary); font-weight: 800; }
+    .nav-icon { font-size: 1.3rem; }
+    .nav-label { font-size: 0.7rem; margin-top: 2px; }
+
+    .nav-add-wrap { flex: 0 0 84px; position: relative; }
+    .nav-add {
+      position: absolute; left: 50%; top: -22px; transform: translateX(-50%);
+      width: 62px; height: 62px; border-radius: 50%;
+      border: 4px solid var(--bg); background: var(--primary); color: var(--primary-ink);
+      font-size: 2rem; line-height: 1; font-weight: 700;
+      box-shadow: 0 6px 18px rgba(79, 124, 255, 0.45);
+      cursor: pointer;
+    }
+    .nav-add:active { transform: translateX(-50%) scale(0.92); }
+
+    /* ---------- モーダル ---------- */
+    .modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10, 14, 28, 0.55);
+      align-items: center; justify-content: center;
+      z-index: 100; padding: 12px;
+    }
+    .modal.active { display: flex; }
+    .modal-content {
+      background: var(--surface); color: var(--text);
+      width: 100%; max-width: 420px; max-height: 90vh; overflow-y: auto;
+      border-radius: 22px; padding: 20px 18px; position: relative;
+    }
+    .modal-content h3 { padding-right: 36px; }
+    .modal-close {
+      position: absolute; right: 10px; top: 8px;
+      width: 40px; height: 40px; border: none; background: none;
+      font-size: 1.8rem; color: var(--muted); cursor: pointer;
+    }
+
+    .step-indicator { display: flex; justify-content: center; gap: 12px; margin: 12px 0 14px; }
+    .step-dot {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: var(--line); color: #fff;
+      display: grid; place-items: center; font-size: 0.8rem; font-weight: 800;
+    }
+    .step-dot.active { background: var(--primary); color: var(--primary-ink); }
+    .wizard-step { display: none; }
+    .wizard-step.active { display: block; }
+    .step-title { font-size: 0.95rem; margin-bottom: 10px; }
+
+    .date-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .date-chip {
+      position: relative;
+      border: 2px solid var(--line); background: var(--surface-2);
+      border-radius: 999px; padding: 9px 14px; min-height: 42px;
+      font-weight: 700; font-size: 0.85rem; cursor: pointer;
+      display: inline-flex; align-items: center;
+    }
+    .date-chip.selected { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+    .date-chip input[type="date"] {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      opacity: 0; cursor: pointer;
+    }
+
+    .wizard-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 6px 0 14px; }
+    .wizard-btn {
+      min-height: 54px; padding: 10px;
+      border: 2px solid var(--cat, var(--primary));
+      border-radius: 14px;
+      background: var(--surface); color: var(--text);
+      font-weight: 800; font-size: 0.95rem; cursor: pointer;
+      position: relative;
+    }
+    .wizard-btn:active { transform: scale(0.96); }
+    .wizard-btn.selected { background: var(--cat, var(--primary)); color: #fff; }
+    .wizard-btn.add-custom-btn {
+      border-style: dashed;
+      color: var(--primary);
+      border-color: var(--primary);
+      background: transparent;
+    }
+
+    .wizard-summary { font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    .form-input {
+      width: 100%; padding: 14px; font-size: 1rem;
+      border: 2px solid var(--line); background: var(--surface-2); color: var(--text);
+      border-radius: 12px; margin: 10px 0 16px;
+    }
+    .form-input:focus { outline: none; border-color: var(--primary); }
+
+    .wizard-action-btns { display: flex; gap: 10px; }
+    .back-btn {
+      flex: 1; min-height: 48px; padding: 10px; border: 2px solid var(--line);
+      background: var(--surface); border-radius: 12px; cursor: pointer; font-weight: 700;
+    }
+    .submit-btn {
+      flex: 2; min-height: 48px; padding: 10px; border: none;
+      background: var(--primary); color: var(--primary-ink);
+      font-weight: 800; border-radius: 12px; cursor: pointer;
+    }
+    .submit-btn.full { width: 100%; margin-top: 14px; }
+    .link-btn { background: none; border: none; color: var(--primary); font-weight: 700; padding: 8px 4px; cursor: pointer; }
+    .danger-link { background: none; border: none; color: var(--danger); font-weight: 700; margin: 14px auto 0; display: block; padding: 8px; cursor: pointer; }
+
+    .section-desc { font-size: 0.85rem; color: var(--muted); margin: 6px 0 14px; line-height: 1.6; }
+    .section-label { display: block; font-weight: 800; margin: 14px 0 8px; font-size: 0.85rem; }
+
+    .schedule-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 10px 0; border-bottom: 1px solid var(--line);
+      user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    }
+    .schedule-item .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .schedule-item.done { opacity: 0.55; }
+    .schedule-item-btn {
+      background: var(--danger); color: #fff; border: none; padding: 8px 12px;
+      border-radius: 10px; cursor: pointer; font-weight: 700; flex: 0 0 auto;
+    }
+    .detail-add-btn { width: 100%; margin-top: 16px; flex: none; }
+
+    /* ---------- キャラ選択 ---------- */
+    .character-list { display: flex; flex-direction: column; gap: 10px; }
+    .character-card {
+      display: flex; align-items: center; gap: 12px; text-align: left;
+      width: 100%; padding: 12px; border-radius: 16px;
+      background: var(--surface-2); border: 3px solid transparent; cursor: pointer;
+    }
+    .character-card.selected { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, var(--surface)); }
+    .character-card .face {
+      font-size: 2rem; width: 52px; height: 52px; border-radius: 50%; background: var(--surface);
+      display: grid; place-items: center; flex: 0 0 auto; overflow: hidden;
+    }
+    .character-card .face-img {
+      width: 100%; height: 100%; object-fit: cover; object-position: center 20%;
+    }
+    .character-card .name { font-weight: 800; }
+    .character-card .tag { font-size: 0.75rem; color: var(--muted); }
+    .character-card .sample { font-size: 0.8rem; margin-top: 4px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .chip-row .back-btn { flex: 1 1 auto; }
+    .call-chip {
+      border: 2px solid var(--line); background: var(--surface-2); border-radius: 999px;
+      padding: 10px 16px; font-weight: 700; cursor: pointer;
+    }
+    .call-chip.selected { background: var(--primary); border-color: var(--primary); color: var(--primary-ink); }
+
+    /* ---------- 豪華カットイン Modal ---------- */
+    .cutin-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(10, 14, 28, 0.88);
+      backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      z-index: 9999; padding: 20px;
+    }
+    .cutin-modal.active { display: flex; animation: cutin-fade-in 0.4s ease; }
+    @keyframes cutin-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+    .cutin-card {
+      background: linear-gradient(145deg, #1f283e, #111625);
+      border: 3px solid #ffca28;
+      box-shadow: 0 0 35px rgba(255, 202, 40, 0.4), inset 0 0 15px rgba(255, 202, 40, 0.2);
+      border-radius: 24px;
+      padding: 24px 20px;
+      width: 100%; max-width: 380px;
+      text-align: center; color: #fff;
+      position: relative;
+      overflow: hidden;
+      transform: scale(0.9);
+      animation: cutin-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    }
+    @keyframes cutin-pop { to { transform: scale(1); } }
+
+    .cutin-badge {
+      display: inline-block; background: linear-gradient(90deg, #ff7a59, #ffc107);
+      color: #fff; font-weight: 900; font-size: 0.8rem;
+      padding: 4px 14px; border-radius: 999px;
+      letter-spacing: 0.08em; margin-bottom: 12px;
+      box-shadow: 0 3px 10px rgba(255, 122, 89, 0.4);
+    }
+    .cutin-title { font-size: 1.25rem; font-weight: 900; color: #ffe082; margin-bottom: 14px; text-shadow: 0 2px 8px rgba(0,0,0,0.6); }
+
+    .cutin-image-wrap {
+      width: 100%; height: 260px;
+      border-radius: 16px;
+      border: 2px solid rgba(255, 202, 40, 0.5);
+      background: #0a0e1a;
+      margin: 0 auto 16px;
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+    }
+    .cutin-img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .cutin-fallback {
+      font-size: 4.5rem;
+      animation: pulse-avatar 1.8s infinite ease-in-out;
+    }
+    @keyframes pulse-avatar { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+    .cutin-shout {
+      font-size: 1.15rem; font-weight: 900; color: #fff;
+      margin-bottom: 10px; line-height: 1.4;
+      text-shadow: 0 2px 10px rgba(255, 202, 40, 0.5);
+    }
+    .cutin-message {
+      font-size: 0.88rem; color: #d1d5db; line-height: 1.6;
+      white-space: pre-wrap; margin-bottom: 20px;
+    }
+
+    /* ---------- トースト ---------- */
+    .toast-container {
+      position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999; display: flex; flex-direction: column; gap: 8px;
+      width: 92%; max-width: 440px; pointer-events: none;
+    }
+    .toast {
+      background: #2c3550; color: #fff;
+      padding: 12px 14px; border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      font-size: 0.85rem; line-height: 1.45; white-space: pre-wrap;
+      opacity: 0; transform: translateY(-100%);
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+      pointer-events: auto;
+      border-left: 5px solid var(--primary);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-action {
+      flex: 0 0 auto; border: none; background: rgba(255, 255, 255, 0.2); color: #fff;
+      border-radius: 999px; padding: 8px 12px; font-weight: 800; cursor: pointer; min-height: 36px;
+    }
+
+    /* ---------- 紙吹雪 ---------- */
+    .confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 9000; overflow: hidden; }
+    .confetti-piece {
+      position: absolute; width: 9px; height: 14px; border-radius: 2px; opacity: 0;
+      animation: confetti-fall var(--dur, 1.4s) cubic-bezier(0.2, 0.7, 0.4, 1) var(--delay, 0s) forwards;
+    }
+    @keyframes confetti-fall {
+      0%   { opacity: 1; transform: translate(0, 0) rotate(0); }
+      100% { opacity: 0; transform: translate(var(--dx, 0), var(--dy, 300px)) rotate(var(--rot, 540deg)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- ヘッダー（時計 & 親密度テストボタン） -->
+    <header class="app-header">
+      <div class="header-top">
+        <h1>マイ スケジュール</h1>
+        <button type="button" id="btnAffinityTest" class="test-btn">⚡ MAX & 残り1個</button>
+      </div>
+      <div id="digitalClock" class="digital-clock">2026/10/20 (火) 00:00:00</div>
+    </header>
+
+    <main class="app-content">
+
+      <!-- ホーム画面：相棒・スタンプ台紙・今日と明日 -->
+      <section id="homeView" class="view-page active">
+
+        <div class="partner-card">
+          <button type="button" id="partnerAvatar" class="partner-avatar" aria-label="相棒の設定を開く">
+            <img id="avatarImg" src="2026-10-26.webp" alt="相棒" class="partner-avatar-img hidden">
+            <span id="avatarEmoji" class="hidden">🤖</span>
+          </button>
+          <button type="button" id="partnerBubble" class="partner-bubble" aria-live="polite">
+            <div class="partner-name-row">
+              <span id="partnerName" class="partner-name"></span>
+              <span id="partnerAffinity" class="partner-affinity">Lv.1 相棒</span>
+            </div>
+            <span id="partnerText" class="partner-text"></span>
+          </button>
+        </div>
+
+        <!-- スタンプ台紙 -->
+        <section class="stamp-board" aria-label="スタンプ台紙">
+          <div class="stamp-board-head">
+            <h2 id="stampBoardTitle">スタンプ台紙</h2>
+            <span id="stampBoardCount" class="stamp-board-count">0/10</span>
+          </div>
+          <div id="stampGrid" class="stamp-grid"></div>
+          <p id="stampTotal" class="stamp-total"></p>
+        </section>
+
+        <!-- 予定一覧・カウントダウン -->
+        <div id="countdownRow" class="countdown-row"></div>
+        <div id="homeSections"></div>
+
+      </section>
+
+      <!-- カレンダー画面 -->
+      <section id="calendarView" class="view-page">
+        <!-- 予定ストックパレット -->
+        <div class="stock-palette-card">
+          <div class="stock-palette-head">
+            <h3>予定ストック（ポンポン配置）</h3>
+            <span id="stampModeBadge" class="mode-badge">配置モード中！</span>
+          </div>
+          <div id="stockList" class="stock-list"></div>
+          <p id="stockHint" class="stock-palette-hint" style="margin-top:6px;">ストックを選択してから日付をタップすると連続配置できます。</p>
+        </div>
+
+        <div class="calendar-header">
+          <button type="button" id="prevMonthBtn" class="month-nav-btn" aria-label="前の月">&lt;</button>
+          <h2 id="currentMonthTitle">2026年 10月</h2>
+          <button type="button" id="nextMonthBtn" class="month-nav-btn" aria-label="次の月">&gt;</button>
+        </div>
+        <div class="calendar-sub">
+          <button type="button" id="todayBtn" class="today-btn">📍 今日に戻る</button>
+          <span class="calendar-legend"><i class="lg-today"></i>今日 <i class="lg-tomorrow"></i>明日 <b class="lg-hw">宿</b>宿題あり</span>
+        </div>
+
+        <table class="calendar-table">
+          <thead>
+            <tr>
+              <th class="sun">日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th class="sat">土</th>
+            </tr>
+          </thead>
+          <tbody id="calendarBody"></tbody>
+        </table>
+        <p class="hint">日付をタップで予定の確認・追加、アイコンを長押しで修正できます。</p>
+      </section>
+
+    </main>
+
+    <!-- 下部ナビ -->
+    <nav class="bottom-nav">
+      <button type="button" id="tabHome" class="nav-tab-btn active">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">ホーム</span>
+      </button>
+      <div class="nav-add-wrap">
+        <button type="button" id="fabAdd" class="nav-add" aria-label="予定を追加">＋</button>
+      </div>
+      <button type="button" id="tabCalendar" class="nav-tab-btn">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">カレンダー</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- 予定の追加・修正モーダル -->
+  <div id="addModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="selectedDateTitle">
+    <div class="modal-content">
+      <button type="button" id="closeAddModal" class="modal-close" aria-label="閉じる">&times;</button>
+      <h3 id="selectedDateTitle">予定を追加</h3>
+
+      <div class="step-indicator">
+        <span id="dot1" class="step-dot active">1</span>
+        <span id="dot2" class="step-dot">2</span>
+        <span id="dot3" class="step-dot">3</span>
+      </div>
+
+      <div id="step1" class="wizard-step active">
+        <h4 class="step-title">いつ？ なんの予定？</h4>
+        <div id="dateChips" class="date-chips">
+          <button type="button" class="date-chip" data-offset="0">今日</button>
+          <button type="button" class="date-chip" data-offset="1">明日</button>
+          <button type="button" class="date-chip" data-offset="7">来週</button>
+          <label class="date-chip other" id="otherDateChip">
+            <span id="otherDateText">📅 他の日</span>
+            <input type="date" id="wizardDateInput" aria-label="日付を選ぶ">
+          </label>
+        </div>
+        <div id="categoryGrid" class="wizard-grid"></div>
+        <button type="button" id="skipToSave1" class="link-btn hidden">メモ・保存へ →</button>
+      </div>
+
+      <div id="step2" class="wizard-step">
+        <h4 class="step-title">くわしく選んでね</h4>
+        <div id="detailGrid" class="wizard-grid"></div>
+        <button type="button" id="skipToSave2" class="link-btn hidden">メモ・保存へ →</button>
+        <div class="wizard-action-btns">
+          <button type="button" id="backToStep1" class="back-btn">← 戻る</button>
+        </div>
+      </div>
+
+      <div id="step3" class="wizard-step">
+        <h4 class="step-title">メモ</h4>
+        <p id="wizardSummary" class="wizard-summary"></p>
+        <input type="text" id="scheduleMemo" placeholder="例：P.20〜25、14時集合など" class="form-input" maxlength="60" autocomplete="off">
+        
+        <div id="stockSaveOption" style="margin-bottom: 14px;">
+          <label style="font-size:0.85rem; font-weight:700; cursor:pointer;">
+            <input type="checkbox" id="saveAsStockCheck"> この予定をストックパレットに保存する
+          </label>
+        </div>
+
+        <div class="wizard-action-btns">
+          <button type="button" id="backToStep2" class="back-btn">← 戻る</button>
+          <button type="button" id="submitScheduleBtn" class="submit-btn">登録する</button>
+        </div>
+        <button type="button" id="deleteFromEditBtn" class="danger-link hidden">この予定を削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- カスタム項目作成専用モーダル -->
+  <div id="customPromptModal" class="modal" role="dialog" aria-modal="true" style="z-index: 200;">
+    <div class="modal-content">
+      <button type="button" id="closeCustomPrompt" class="modal-close" aria-label="閉じる">&times;</button>
+      <h3 id="customPromptTitle">新しい項目を追加</h3>
+      
+      <div id="emojiInputGroup" style="margin-top: 10px;">
+        <label class="section-label" style="margin-top:0;">絵文字アイコン（1文字）</label>
+        <input type="text" id="customEmojiInput" placeholder="例：🎨, ⚽, 📚" class="form-input" maxlength="4">
+      </div>
+
+      <label class="section-label" style="margin-top:0;">名前</label>
+      <input type="text" id="customNameInput" placeholder="例：習い事、リスニングなど" class="form-input" maxlength="20">
+
+      <button type="button" id="saveCustomPromptBtn" class="submit-btn full">追加する</button>
+    </div>
+  </div>
+
+  <!-- ストック追加専用モーダル -->
+  <div id="stockAddModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="stockAddTitle">
+    <div class="modal-content">
+      <button type="button" id="closeStockModal" class="modal-close" aria-label="閉じる">&times;</button>
+      <h3 id="stockAddTitle">ストックを作成</h3>
+
+      <label class="section-label">カテゴリ</label>
+      <div id="stockCategoryGrid" class="wizard-grid"></div>
+
+      <label class="section-label">詳細</label>
+      <div id="stockDetailGrid" class="wizard-grid"></div>
+
+      <input type="text" id="stockMemo" placeholder="メモ（任意：例 7:30集合）" class="form-input" maxlength="30">
+
+      <button type="button" id="saveStockBtn" class="submit-btn full">ストックを保存</button>
+    </div>
+  </div>
+
+  <!-- 日ごとの予定一覧モーダル -->
+  <div id="detailModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle">
+    <div class="modal-content">
+      <button type="button" id="closeDetailModal" class="modal-close" aria-label="閉じる">&times;</button>
+      <h3 id="detailModalTitle">予定一覧</h3>
+      <div id="scheduleDetailList"></div>
+    </div>
+  </div>
+
+  <!-- 相棒の設定モーダル -->
+  <div id="profileModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+    <div class="modal-content">
+      <button type="button" id="closeProfileModal" class="modal-close" aria-label="閉じる">&times;</button>
+      <h3 id="profileTitle">相棒を選ぼう</h3>
+      <p id="profileDesc" class="section-desc">予定のことを、そばで教えてくれる相棒だよ。</p>
+
+      <div id="characterList" class="character-list"></div>
+
+      <div id="callSection" class="call-section hidden">
+        <span class="section-label">なんて呼ばれたい？</span>
+        <div id="callChips" class="chip-row"></div>
+      </div>
+
+      <button type="button" id="profileSaveBtn" class="submit-btn full">決定</button>
+      
+      <!-- テスト用：全データ初期化ボタン -->
+      <button type="button" id="resetAllDataBtn" class="danger-link" style="margin-top: 18px;">⚠️ データをすべて初期化（テスト用）</button>
+    </div>
+  </div>
+
+  <!-- 豪華カットインモーダル -->
+  <div id="cutinModal" class="cutin-modal" role="dialog" aria-modal="true">
+    <div class="cutin-card">
+      <span id="cutinBadge" class="cutin-badge">SPECIAL CUT-IN</span>
+      <h3 id="cutinTitle" class="cutin-title">台紙コンプリート！</h3>
+      
+      <div class="cutin-image-wrap">
+        <img id="cutinImg" class="cutin-img hidden" src="2026-10-26.webp" alt="相棒カットインイラスト">
+        <span id="cutinFallback" class="cutin-fallback">👑</span>
+      </div>
+
+      <div id="cutinShout" class="cutin-shout"></div>
+      <p id="cutinMessage" class="cutin-message"></p>
+
+      <button type="button" id="closeCutinBtn" class="submit-btn full">閉じる</button>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container"></div>
+  <div id="confettiLayer" class="confetti-layer" aria-hidden="true"></div>
+
+  <script>
+    'use strict';
+
+    /* ==========================================
+       1. 定数・マスターデータ
+       ========================================== */
+    const DEFAULT_CATEGORIES = {
+      "塾":   { icon: "📚" },
+      "学校": { icon: "🏫" },
+      "部活": { icon: "⚽" },
+      "遊び": { icon: "🎮" },
+      "その他": { icon: "📝" }
+    };
+
+    const DEFAULT_DETAILS = {
+      "塾":   ["英語", "数学", "国語", "理科", "社会", "宿題", "面談・テスト"],
+      "学校": ["授業", "テスト", "行事", "委員会", "宿題提出"],
+      "部活": ["通常練習", "朝練", "練習試合", "大会・公式戦", "宿題"],
+      "遊び": ["友達と遊ぶ", "ゲーム", "買い物", "映画・お出かけ"],
+      "その他": ["病院・通院", "習い事", "予定あり", "メモ"]
+    };
+
+    const DEFAULT_STOCKS = [
+      { id: 'stk_1', category: '部活', detail: '朝練', memo: '7:30集合' }
+    ];
+
+    const PARTNERS = {
+      "ノーマル": { name: "ノーマルAI", avatar: "🤖", tag: "淡々と事実だけ案内", sample: "本日の予定は2件です。", imgFile: "320c6418-080b-4fc6-8e84-180089daf8c9.webp" },
+      "友達":   { name: "頼れる友達", avatar: "😁", tag: "気軽に話してくれる", sample: "おつかれ！今日は2つだよ、いけるいける！", imgFile: "8ea29fa4-a8ea-4b52-82d3-16155845fb7f.webp" },
+      "執事":   { name: "執事",       avatar: "🎩", tag: "丁寧に支えてくれる", sample: "本日のお控えは2件でございます。", imgFile: "2026-10-26.webp" }
+    };
+    const CALLS = ["お嬢様", "坊ちゃま", "ご主人様"];
+
+    const AFFINITY_TITLES = {
+      1: "Lv.1 相棒",
+      2: "Lv.2 信頼の友",
+      3: "Lv.3 相思相愛",
+      4: "Lv.MAX 最高のパートナー"
+    };
+
+    const STAMP_GLYPHS = ["💮", "💮", "💮", "⭐", "⭐", "⭐", "🌟", "🌟", "🌟", "👑"];
+    const CARD_SIZE = 10;
+    const CONFETTI_COLORS = ["#ff7a59", "#4f7cff", "#ffc83d", "#1fae7a", "#a259f7", "#ff5c8a"];
+
+    const accordionState = {
+      carry: true,
+      today: true,
+      tomorrow: true,
+      afterTomorrow: false
+    };
+
+    /* ==========================================
+       2. 相棒のセリフバンク
+       ========================================== */
+    const PHRASES = {
+      "ノーマル": {
+        greet: {
+          morning: ["おはようございます。本日の予定を確認します。"],
+          after:   ["本日の予定状況です。"],
+          night:   ["本日もお疲れ様でした。"]
+        },
+        today:   ["本日の予定は{n}件です。（{items}）"],
+        hw:      ["本日の予定に「{item}」が含まれています。"],
+        free:    ["本日の予定はありません。"],
+        allDone: ["本日の予定はすべて完了しました。"],
+        stamp:   ["完了として記録しました。"],
+        cardComplete: ["スタンプ台紙が満了しました（10/10個）。"],
+        carry:   ["未完了の持ち越し予定が{n}件あります。"],
+        hard:    ["本日は{n}件の予定が登録されています。"],
+        comeback:["前回のアクセスから{days}日が経過しています。"],
+        countdown:["{name}まで、あと{days}日です。"],
+        countdown0: ["本日は「{name}」の当日です。"],
+        tomorrow:["明日の予定は{items}です。"],
+        highAffinity: [
+          "ご利用状況が継続しています。順調なスケジュール管理が行われています。",
+          "スタンプ獲得数が目標レベルに達しています。"
+        ]
+      },
+      "友達": {
+        greet: {
+          morning: ["おはよー❗️今日も学校とかマジでえらすぎ😁", "朝だぞ朝❗️今日も一日乗り切ろうぜ笑"],
+          after:   ["おつかれー❗️帰り道しっかり足元見て気をつけなよ笑", "やっほー❗️今日も一日生き延びてえらい😁"],
+          night:   ["おつかれさま！夜更かししてネットばっか見るなよ〜笑", "夜だ❗️今日も一日よくやり切ったな、マジでビビるわ😁"]
+        },
+        today:   ["今日の予定はまさかの{n}つ❗️お前なら余裕で秒殺だろ笑", "今日の予定これな 👉 {items} ❗️さっさと終わらせちゃおぜ😁"],
+        hw:      ["おいおい、今日{item}あるじゃん❗️忘れるなよ笑", "{item}、ちゃんとやるよな？逃げんなよ〜😁❗️"],
+        free:    ["今日予定ゼロかよ。何して遊ぶの笑✨", "フリーだ❗️今日は思いっきりサボ…じゃなくて休めって😁✨"],
+        allDone: ["うわ、全部おわったじゃん❗️やるな〜最高かよ🎉", "マジか全クリアとか天才すぎ✨😁"],
+        stamp:   ["ナイスナイス❗️1つクリアな😁", "いいね〜その調子その調子❗️調子乗っていこ笑", "やったじゃん❗️スタンプ追加な〜🎉"],
+        cardComplete: ["おいおい台紙全部うまったぞ…！すごすぎて草😁🎉", "10個達成とかマジでお前どうしたのすごすぎだろ❗️✨"],
+        carry:   ["昨日までの分が{n}つ残ってるやんけ❗️まあ今日いっしょに片付けよーぜ😁", "持ち越しが{n}つ……っておいおい笑 大丈夫、今日サクッと終わらせよ！"],
+        hard:    ["今日は{n}つとかマジでハードすぎんだろ❗️ドンマイ笑 マイペースで行こ😁", "ちょっと厳しいスケジュールだけど、まず1つ目いってみよ❗️やればできるって笑"],
+        comeback:["おかえり❗️{days}日ぶりじゃん、生きてたか笑😁", "久しぶり❗️待たせんなよ〜また一緒にがんばろぜ❗️"],
+        countdown:[`{name}まであと{days}日だってよ❗️準備はバッチリか〜？笑`, `{name}まであと{days}日❗️そろそろエンジンかけてこぜ😁`],
+        countdown0: [`おい,今日いよいよ{name}じゃん❗️マジでやらかすなよ、がんばれ笑😁`],
+        tomorrow:[`明日はこれな 👉 {items} ❗️忘れんなよ笑😁`],
+        highAffinity: [
+          "お前がそんなに頑張ってるからさ、俺も負けてらんないなって思っちゃうよね😁",
+          "最初の頃よりめちゃくちゃ頼もしくなったじゃん！最高の相棒ってやつかよ笑",
+          "今日も一緒にクリアできてマジで最高！明日も頼むな相棒❗️😁"
+        ]
+      },
+      "執事": {
+        greet: {
+          morning: ["{call}、おはようございます。", "おはようございます、{call}。"],
+          after:   ["{call}、お疲れさまでございます。", "失礼いたします、{call}。"],
+          night:   ["{call}、今宵もお疲れさまでございました。", "夜分に失礼いたします、{call}。"]
+        },
+        today:   ["本日のお控えは{n}件でございます。", "本日は{items}がございます。私めがお支えいたします。"],
+        hw:      ["本日は{item}がございます。お早めに済ませますよう。", "{item}をお忘れなく。お手伝いいたします。"],
+        free:    ["本日のご予定はございません。ごゆっくりお寛ぎください。", "予定のない一日でございます。心ゆくまでお休みください。"],
+        allDone: ["すべて完了でございます。お見事です、{call}。", "本日のお務め、完璧でございます。"],
+        stamp:   ["お見事でございます。", "ひとつ完了、素晴らしゅうございます。", "さすがは{call}でございます。"],
+        cardComplete: ["台紙が満ちました！おめでとうございます、{call}！🎉", "十個の達成、心より称賛申し上げます。"],
+        carry:   ["昨日までの分が{n}件、残っております。本日、ご一緒に片付けましょう。", "持ち越しが{n}件ございます。ご心配なく、私めがお供いたします。"],
+        hard:    ["本日は{n}件と多めでございます。お一つずつ参りましょう。", "少々立て込んでおります。まずは一つ目から、いかがでしょう。"],
+        comeback:["おかえりなさいませ、{call}。{days}日ぶりでございますね。", "お待ちしておりました、{call}。"],
+        countdown:["{name}まであと{days}日でございます。ご準備を。", "{name}まで{days}日。少しずつ参りましょう。"],
+        countdown0: ["本日は{name}でございます。ご健闘をお祈りいたします。"],
+        tomorrow:["明日は{items}がございます。今宵のうちにご準備を。"],
+        highAffinity: [
+          "{call}のお側でお支えできますこと、私めの人生最大の幸運にございます。",
+          "貴方様の弛まぬ努力、一番近くで拝見し心より尊敬申し上げております。",
+          "どこまでも貴方様に従い、お支えいたす所存でございます."
+        ]
+      }
+    };
+
+    /* ==========================================
+       3. ストレージ・状態
+       ========================================== */
+    function load(key, fallback) {
+      try {
+        const v = localStorage.getItem(key);
+        return v === null ? fallback : JSON.parse(v);
+      } catch (e) { return fallback; }
+    }
+    function save(key, val) {
+      try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* noop */ }
+    }
+
+    let idSeq = 0;
+    function uid() { return Date.now() * 1000 + (idSeq++ % 1000); }
+
+    let CATEGORIES = load('custom_categories', DEFAULT_CATEGORIES);
+    let detailOptions = load('custom_details', DEFAULT_DETAILS);
+
+    function sanitizeSchedules(obj) {
+      const out = {};
+      if (!obj || typeof obj !== 'object') return out;
+      Object.keys(obj).forEach(d => {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(d) || !Array.isArray(obj[d])) return;
+        const list = obj[d]
+          .filter(x => x && typeof x === 'object')
+          .map(x => ({
+            id: Number.isFinite(x.id) ? x.id : uid(),
+            category: String(x.category || 'その他'),
+            detail: String(x.detail || ''),
+            memo: String(x.memo || ''),
+            done: !!x.done,
+            doneAt: x.doneAt || null
+          }));
+        if (list.length) out[d] = list;
+      });
+      return out;
+    }
+
+    function makeSeedSchedules() {
+      const t = formatDateStr(new Date());
+      const mk = (category, detail, memo) => ({ id: uid(), category, detail, memo, done: false, doneAt: null });
+      const s = {};
+      s[addDays(t, -1)] = [mk("塾", "宿題", "数学 P.20〜25")];
+      s[t] = [mk("塾", "英語", "単語テスト"), mk("学校", "宿題提出", "理科のワーク")];
+      s[addDays(t, 1)] = [mk("部活", "朝練", "7:30集合")];
+      s[addDays(t, 2)] = [mk("遊び", "友達と遊ぶ", "14:00集合")];
+      s[addDays(t, 5)] = [mk("学校", "テスト", "中間テスト")];
+      return s;
+    }
+
+    let schedules = load('schedules', null);
+    if (schedules === null) schedules = makeSeedSchedules();
+    schedules = sanitizeSchedules(schedules);
+
+    let stocks = load('stocks', null);
+    if (!Array.isArray(stocks)) stocks = DEFAULT_STOCKS;
+
+    let selectedStockId = null;
+
+    let profile = load('profile', null);
+    if (!profile || !PARTNERS[profile.style]) {
+      profile = { style: "執事", call: "ご主人様", setupDone: false };
+    }
+    if (!CALLS.includes(profile.call)) profile.call = "ご主人様";
+
+    let stampCount = Math.max(0, Number(load('stampCount', 0)) || 0);
+    let usage = load('usage', {}) || {};
+
+    let calMonth = { y: new Date().getFullYear(), m: new Date().getMonth() };
+    let wizard = null;
+    let stockWizard = null;
+    let profileDraft = null;
+    let profileFirstRun = false;
+    let comebackDays = 0;
+    let bubbleOverride = null;
+    let bubbleTimer = null;
+    let cachedMessage = { sig: '', text: '' };
+    let lastStampSlot = -1;
+    let lastRenderedDay = '';
+    let ignoreBackdropUntil = 0;
+
+    let customPromptCallback = null;
+
+    function saveAll() {
+      save('schedules', schedules);
+      save('stocks', stocks);
+      save('stampCount', stampCount);
+      save('usage', usage);
+      save('profile', profile);
+      save('custom_categories', CATEGORIES);
+      save('custom_details', detailOptions);
+    }
+
+    function getAffinityLevel() {
+      const completedCards = Math.floor(stampCount / CARD_SIZE);
+      if (completedCards >= 5) return 4;
+      if (completedCards >= 3) return 3;
+      if (completedCards >= 1) return 2;
+      return 1;
+    }
+
+    /* ==========================================
+       4. 日付・共通ヘルパー
+       ========================================== */
+    const DAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function formatDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+    function parseDateStr(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+    function todayStr() { return formatDateStr(new Date()); }
+    function addDays(s, n) { const d = parseDateStr(s); d.setDate(d.getDate() + n); return formatDateStr(d); }
+    function daysBetween(a, b) {
+      const da = parseDateStr(a), db = parseDateStr(b);
+      return Math.round((Date.UTC(db.getFullYear(), db.getMonth(), db.getDate()) - Date.UTC(da.getFullYear(), da.getMonth(), da.getDate())) / 86400000);
+    }
+    function labelMD(s) { const d = parseDateStr(s); return `${d.getMonth() + 1}/${d.getDate()}(${DAY_NAMES[d.getDay()]})`; }
+    function isHomework(item) { return item.detail.includes('宿題'); }
+    function itemLabel(item) { return `${item.category}・${item.detail}`; }
+    function getCatIcon(catName) { return CATEGORIES[catName]?.icon || '📝'; }
+
+    function el(tag, className, text) {
+      const e = document.createElement(tag);
+      if (className) e.className = className;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+    function $(id) { return document.getElementById(id); }
+    function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function fill(str, vars) { return str.replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : '')); }
+    function buzz(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* noop */ } }
+    function reducedMotion() { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+    function findItem(id) {
+      for (const d of Object.keys(schedules)) {
+        const index = schedules[d].findIndex(i => i.id === id);
+        if (index >= 0) return { date: d, item: schedules[d][index], index };
+      }
+      return null;
+    }
+    function sortItems(list) {
+      return list.slice().sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+    }
+    function removeItem(id) {
+      const f = findItem(id);
+      if (!f) return null;
+      schedules[f.date].splice(f.index, 1);
+      if (schedules[f.date].length === 0) delete schedules[f.date];
+      return f;
+    }
+    function restoreItem(f) {
+      if (!schedules[f.date]) schedules[f.date] = [];
+      schedules[f.date].splice(Math.min(f.index, schedules[f.date].length), 0, f.item);
+    }
+
+    function attachLongPress(target, callback, ms = 550) {
+      let timer = null, sx = 0, sy = 0;
+      const cancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
+      target.addEventListener('pointerdown', (e) => {
+        if (e.button !== undefined && e.button !== 0) return;
+        sx = e.clientX; sy = e.clientY;
+        cancel();
+        timer = setTimeout(() => {
+          timer = null;
+          const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+          target.addEventListener('click', swallow, { capture: true, once: true });
+          setTimeout(() => target.removeEventListener('click', swallow, { capture: true }), 700);
+          ignoreBackdropUntil = Date.now() + 600;
+          buzz(20);
+          callback();
+        }, ms);
+      });
+      target.addEventListener('pointermove', (e) => {
+        if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) cancel();
+      });
+      ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => target.addEventListener(t, cancel));
+      target.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+
+    function cleanupOldDone() {
+      const limit = addDays(todayStr(), -30);
+      let changed = false;
+      Object.keys(schedules).forEach(d => {
+        if (d < limit) {
+          const kept = schedules[d].filter(i => !i.done);
+          if (kept.length !== schedules[d].length) {
+            changed = true;
+            if (kept.length) schedules[d] = kept; else delete schedules[d];
+          }
+        }
+      });
+      if (changed) saveAll();
+    }
+
+    function getCarryList() {
+      const today = todayStr();
+      const from = addDays(today, -14);
+      const out = [];
+      Object.keys(schedules).sort().forEach(d => {
+        if (d < today && d >= from) schedules[d].forEach(item => { if (!item.done) out.push({ date: d, item }); });
+      });
+      return out;
+    }
+
+    function getCountdowns(maxDays) {
+      const today = todayStr();
+      const out = [];
+      for (let n = 0; n <= maxDays; n++) {
+        const d = addDays(today, n);
+        (schedules[d] || []).forEach(item => {
+          if (!item.done && /テスト|大会/.test(item.detail)) {
+            out.push({ date: d, item, days: n, name: item.memo || `${item.category}の${item.detail}` });
+          }
+        });
+      }
+      return out;
+    }
+
+    function getContext() {
+      const today = todayStr();
+      const tomorrow = addDays(today, 1);
+      const hour = new Date().getHours();
+      const todayAll = schedules[today] || [];
+      return {
+        today, tomorrow, hour,
+        slot: hour < 11 ? 'morning' : (hour < 19 ? 'after' : 'night'),
+        todayAll,
+        todayUndone: todayAll.filter(i => !i.done),
+        tomorrowUndone: (schedules[tomorrow] || []).filter(i => !i.done),
+        carry: getCarryList(),
+        countdowns: getCountdowns(14)
+      };
+    }
+
+    /* ==========================================
+       5. 相棒メッセージ
+       ========================================== */
+    function composeMessage() {
+      const ctx = getContext();
+      const bank = PHRASES[profile.style] || PHRASES["ノーマル"];
+      const base = { call: profile.call };
+      const lines = [];
+
+      const affinity = getAffinityLevel();
+
+      if (affinity >= 2 && Math.random() < 0.35 && bank.highAffinity) {
+        lines.push(fill(pick(bank.highAffinity), base));
+        return lines.join('\n');
+      }
+
+      if (comebackDays >= 3) lines.push(fill(pick(bank.comeback), { ...base, days: comebackDays }));
+      else lines.push(fill(pick(bank.greet[ctx.slot]), base));
+
+      const undoneCount = ctx.todayUndone.length;
+      const itemsText = ctx.todayUndone.map(i => itemLabel(i)).join('、');
+      if (ctx.todayAll.length > 0 && undoneCount === 0) {
+        lines.push(fill(pick(bank.allDone), base));
+      } else if (undoneCount >= 3) {
+        lines.push(fill(pick(bank.hard), { ...base, n: undoneCount }));
+      } else if (undoneCount > 0) {
+        const hw = ctx.todayUndone.find(isHomework);
+        if (hw) lines.push(fill(pick(bank.hw), { ...base, item: `${hw.category}の${hw.detail}` }));
+        else lines.push(fill(pick(bank.today), { ...base, n: undoneCount, items: itemsText }));
+      } else if (ctx.carry.length === 0) {
+        lines.push(fill(pick(bank.free), base));
+      }
+
+      const near = ctx.countdowns.find(c => c.days <= 3);
+      if (ctx.carry.length > 0) {
+        lines.push(fill(pick(bank.carry), { ...base, n: ctx.carry.length }));
+      } else if (ctx.hour >= 16 && ctx.tomorrowUndone.length > 0) {
+        lines.push(fill(pick(bank.tomorrow), { ...base, items: ctx.tomorrowUndone.map(i => itemLabel(i)).join('、') }));
+      } else if (near) {
+        lines.push(near.days === 0
+          ? fill(pick(bank.countdown0), { ...base, name: near.name })
+          : fill(pick(bank.countdown), { ...base, name: near.name, days: near.days }));
+      }
+      return lines.join('\n');
+    }
+
+    function messageSignature() {
+      const c = getContext();
+      return [c.today, c.slot, c.hour >= 16 ? 'pm' : 'am', c.todayAll.length, c.todayUndone.length, c.carry.length,
+        c.tomorrowUndone.length, c.countdowns.length, profile.style, profile.call, getAffinityLevel()].join('|');
+    }
+
+    function getMessage(force) {
+      const sig = messageSignature();
+      if (force || cachedMessage.sig !== sig) {
+        cachedMessage = { sig, text: composeMessage() };
+      }
+      return cachedMessage.text;
+    }
+
+    function reactionMessage(kind) {
+      const bank = PHRASES[profile.style] || PHRASES["ノーマル"];
+      return fill(pick(bank[kind]), { call: profile.call });
+    }
+
+    function setReaction(text) {
+      comebackDays = 0;
+      bubbleOverride = text;
+      clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(() => { bubbleOverride = null; renderPartner(true); }, 6000);
+      renderPartner(true);
+    }
+
+    function renderPartner(animate) {
+      const p = PARTNERS[profile.style];
+      const imgEl = $('avatarImg');
+      const emojiEl = $('avatarEmoji');
+
+      // すべてのキャラクターで画像を表示
+      if (p.imgFile) {
+        imgEl.src = p.imgFile;
+        imgEl.classList.remove('hidden');
+        emojiEl.classList.add('hidden');
+      } else {
+        imgEl.classList.add('hidden');
+        emojiEl.textContent = p.avatar;
+        emojiEl.classList.remove('hidden');
+      }
+
+      $('partnerName').textContent = p.name;
+      $('partnerAffinity').textContent = AFFINITY_TITLES[getAffinityLevel()];
+      $('partnerText').textContent = bubbleOverride !== null ? bubbleOverride : getMessage(false);
+      if (animate) {
+        const b = $('partnerBubble');
+        b.classList.remove('pop');
+        void b.offsetWidth;
+        b.classList.add('pop');
+      }
+    }
+
+    /* ==========================================
+       6. ホーム画面 & スタンプ
+       ========================================== */
+    function buildTaskRow(date, item, opts = {}) {
+      const row = el('div', 'task-row' + (item.done ? ' done' : ''));
+      row.dataset.cat = item.category;
+
+      row.appendChild(el('span', 'cat-icon', getCatIcon(item.category)));
+
+      const body = el('div', 'task-body');
+      body.appendChild(el('div', 'task-title', itemLabel(item)));
+      const meta = [];
+      if (opts.showDate) meta.push(labelMD(date));
+      if (item.memo) meta.push(item.memo);
+      if (meta.length) body.appendChild(el('div', 'task-meta', meta.join(' ')));
+      row.appendChild(body);
+
+      if (item.done) {
+        const undo = el('button', 'done-mark', STAMP_GLYPHS[0]);
+        undo.type = 'button';
+        undo.setAttribute('aria-label', 'スタンプを取り消す');
+        undo.addEventListener('click', () => unstampItem(item.id));
+        row.appendChild(undo);
+      } else {
+        const btn = el('button', 'stamp-btn', 'スタンプ');
+        btn.type = 'button';
+        btn.addEventListener('click', () => stampItem(item.id, btn));
+        row.appendChild(btn);
+      }
+
+      attachLongPress(row, () => openEditWizard(item.id));
+      return row;
+    }
+
+    function buildAccordionSection(stateKey, title, sub, entries, opts = {}) {
+      const isOpen = accordionState[stateKey] !== false;
+      const sec = el('section', 'home-section' + (opts.className ? ' ' + opts.className : '') + (isOpen ? ' open' : ''));
+      
+      const head = el('div', 'home-section-head');
+      const left = el('div', 'left-title');
+      left.appendChild(el('h2', '', title));
+      if (sub) left.appendChild(el('span', 'sub', sub));
+      if (opts.tag) left.appendChild(el('span', 'emphasis-tag', opts.tag));
+      head.appendChild(left);
+
+      const arrow = el('span', 'arrow', '▼');
+      head.appendChild(arrow);
+
+      head.addEventListener('click', () => {
+        accordionState[stateKey] = !sec.classList.contains('open');
+        sec.classList.toggle('open');
+      });
+
+      sec.appendChild(head);
+
+      const wrap = el('div', 'task-list-wrap');
+      const list = el('div', 'task-list');
+      entries.forEach(e => list.appendChild(buildTaskRow(e.date, e.item, { showDate: opts.showDate })));
+      wrap.appendChild(list);
+      sec.appendChild(wrap);
+
+      return sec;
+    }
+
+    function renderCountdowns() {
+      const row = $('countdownRow');
+      row.innerHTML = '';
+      getCountdowns(14).slice(0, 2).forEach(c => {
+        const pill = el('div', 'countdown-pill');
+        pill.dataset.cat = c.item.category;
+        pill.appendChild(document.createTextNode(`⏳ ${c.name}まで `));
+        pill.appendChild(el('b', '', c.days === 0 ? '今日' : `あと${c.days}日`));
+        row.appendChild(pill);
+      });
+    }
+
+    function renderHomeSections() {
+      const box = $('homeSections');
+      box.innerHTML = '';
+      const ctx = getContext();
+      const carry = ctx.carry;
+      const todayItems = sortItems(ctx.todayAll);
+      const tomorrowItems = sortItems(schedules[ctx.tomorrow] || []);
+      const afterTomorrow = addDays(ctx.today, 2);
+      const afterTomorrowItems = sortItems(schedules[afterTomorrow] || []);
+
+      let totalCount = 0;
+
+      if (carry.length) {
+        totalCount += carry.length;
+        box.appendChild(buildAccordionSection('carry', '持ち越し', '終わってない分', carry, { className: 'carry', showDate: true }));
+      }
+      if (todayItems.length) {
+        totalCount += todayItems.length;
+        const morning = ctx.hour < 11 && ctx.todayUndone.length > 0;
+        box.appendChild(buildAccordionSection('today', '今日', labelMD(ctx.today), todayItems.map(i => ({ date: ctx.today, item: i })),
+          { tag: morning ? '⏰ 朝チェック' : null }));
+      }
+      if (tomorrowItems.length) {
+        totalCount += tomorrowItems.length;
+        const evening = ctx.hour >= 16 && ctx.tomorrowUndone.length > 0;
+        box.appendChild(buildAccordionSection('tomorrow', '明日', labelMD(ctx.tomorrow), tomorrowItems.map(i => ({ date: ctx.tomorrow, item: i })),
+          { tag: evening ? '⏰ 明日準備' : null }));
+      }
+      if (afterTomorrowItems.length) {
+        totalCount += afterTomorrowItems.length;
+        box.appendChild(buildAccordionSection('afterTomorrow', '明後日', labelMD(afterTomorrow), afterTomorrowItems.map(i => ({ date: afterTomorrow, item: i }))));
+      }
+
+      if (totalCount === 0) {
+        const card = el('div', 'empty-card');
+        card.textContent = '直近の予定はまだないよ。\n右下の「＋」から追加しよう！';
+        card.style.whiteSpace = 'pre-wrap';
+        box.appendChild(card);
+      } else {
+        box.appendChild(el('p', 'hint', '予定を長押しすると修正できるよ'));
+      }
+    }
+
+    function currentCardInfo() {
+      if (stampCount === 0) return { no: 1, filled: 0 };
+      return { no: Math.floor((stampCount - 1) / CARD_SIZE) + 1, filled: ((stampCount - 1) % CARD_SIZE) + 1 };
+    }
+
+    function renderStampBoard() {
+      const { no, filled } = currentCardInfo();
+      $('stampBoardTitle').textContent = `スタンプ台紙 ${no}枚目`;
+      $('stampBoardCount').textContent = `${filled}/${CARD_SIZE}`;
+      const grid = $('stampGrid');
+      grid.innerHTML = '';
+      for (let i = 0; i < CARD_SIZE; i++) {
+        const slot = el('div', 'stamp-slot' + (i < filled ? ' filled' : '') + (i === lastStampSlot ? ' new' : ''));
+        slot.textContent = i < filled ? STAMP_GLYPHS[i] : '○';
+        grid.appendChild(slot);
+      }
+      lastStampSlot = -1;
+      $('stampTotal').textContent = stampCount === 0 ? 'スタンプを押して台紙をうめよう！' : `これまでに ${stampCount} 個ゲット！`;
+    }
+
+    function renderHome() {
+      renderPartner(false);
+      renderStampBoard();
+      renderCountdowns();
+      renderHomeSections();
+    }
+
+    function confettiBurst(x, y, count) {
+      if (reducedMotion()) return;
+      const layer = $('confettiLayer');
+      for (let i = 0; i < count; i++) {
+        const p = el('span', 'confetti-piece');
+        p.style.left = `${x}px`;
+        p.style.top = `${y}px`;
+        p.style.background = pick(CONFETTI_COLORS);
+        p.style.setProperty('--dx', `${(Math.random() - 0.5) * 320}px`);
+        p.style.setProperty('--dy', `${120 + Math.random() * 280}px`);
+        p.style.setProperty('--rot', `${Math.random() * 900 - 450}deg`);
+        p.style.setProperty('--dur', `${1 + Math.random() * 0.8}s`);
+        p.style.setProperty('--delay', `${Math.random() * 0.15}s`);
+        layer.appendChild(p);
+        setTimeout(() => p.remove(), 2200);
+      }
+    }
+
+    function stampItem(id, btn) {
+      const f = findItem(id);
+      if (!f || f.item.done) return;
+      f.item.done = true;
+      f.item.doneAt = Date.now();
+      stampCount++;
+      lastStampSlot = currentCardInfo().filled - 1;
+      saveAll();
+
+      let kind = 'stamp';
+      const todayList = schedules[todayStr()] || [];
+      if (f.date === todayStr() && todayList.every(i => i.done)) kind = 'allDone';
+      const cardDone = stampCount % CARD_SIZE === 0;
+      if (cardDone) kind = 'cardComplete';
+
+      if (btn) {
+        btn.textContent = STAMP_GLYPHS[Math.max(0, lastStampSlot)];
+        btn.classList.add('stamping');
+        btn.disabled = true;
+        const r = btn.getBoundingClientRect();
+        confettiBurst(r.left + r.width / 2, r.top + r.height / 2, cardDone ? 70 : 22);
+      } else {
+        confettiBurst(window.innerWidth / 2, window.innerHeight / 3, 22);
+      }
+
+      if (cardDone) {
+        buzz([60, 40, 60, 40, 120]);
+        confettiBurst(window.innerWidth / 2, 0, 80);
+        setTimeout(openCutinModal, 500);
+      } else {
+        buzz(30);
+      }
+
+      setReaction(reactionMessage(kind));
+      showToast('スタンプをゲット！', { actionLabel: '取り消す', onAction: () => unstampItem(id), duration: 4000 });
+      setTimeout(renderAll, 450);
+    }
+
+    function unstampItem(id) {
+      const f = findItem(id);
+      if (!f || !f.item.done) return;
+      f.item.done = false;
+      f.item.doneAt = null;
+      stampCount = Math.max(0, stampCount - 1);
+      saveAll();
+      bubbleOverride = null;
+      renderAll();
+    }
+
+    /* ==========================================
+       7. 豪華カットイン演出
+       ========================================== */
+    function openCutinModal() {
+      const p = PARTNERS[profile.style];
+      const level = getAffinityLevel();
+      const title = AFFINITY_TITLES[level];
+
+      $('cutinTitle').textContent = `台紙達成！ 【${title}】`;
+
+      const imgEl = $('cutinImg');
+      const fallbackEl = $('cutinFallback');
+      
+      if (p.imgFile) {
+        imgEl.src = p.imgFile;
+        imgEl.classList.remove('hidden');
+        fallbackEl.classList.add('hidden');
+      } else {
+        imgEl.classList.add('hidden');
+        fallbackEl.textContent = p.avatar;
+        fallbackEl.classList.remove('hidden');
+      }
+
+      const shouts = {
+        "ノーマル": "「目標のスタンプ10個を達成しました。」",
+        "友達": "「お前じゃなきゃ、ここまで来れなかった！」",
+        "執事": "「一生、貴方様にお仕えいたします。」"
+      };
+      const messages = {
+        "ノーマル": `スタンプ10個の獲得が確認されました。\n引き続きスケジュール管理を行なってください。`,
+        "友達": `まじで100点満点！！10個達成おめでとう🎉\n最高の相棒に巡り会えて超ラッキーだよ。これからもずっと一緒に頑張ろうな！`,
+        "執事": `見事10個の目標をご達成されました。\nご主人様のお側でその輝かしいお姿を拝見できますこと、私めの誇りにございます。`
+      };
+
+      $('cutinShout').textContent = shouts[profile.style] || "";
+      $('cutinMessage').textContent = fill(messages[profile.style] || "", { call: profile.call });
+
+      $('cutinModal').classList.add('active');
+    }
+
+    $('closeCutinBtn').addEventListener('click', () => {
+      $('cutinModal').classList.remove('active');
+    });
+
+    /* ==========================================
+       8. ストック・パレット & 連続配置
+       ========================================== */
+    function renderStockPalette() {
+      const list = $('stockList');
+      list.innerHTML = '';
+
+      stocks.forEach(stk => {
+        const isSelected = selectedStockId === stk.id;
+        const btn = el('button', 'stock-item-btn' + (isSelected ? ' selected' : ''));
+        btn.type = 'button';
+        btn.dataset.cat = stk.category;
+
+        const icon = getCatIcon(stk.category);
+        btn.textContent = `${icon} ${stk.detail}${stk.memo ? ' (' + stk.memo + ')' : ''}`;
+
+        btn.addEventListener('click', () => {
+          if (selectedStockId === stk.id) {
+            selectedStockId = null;
+          } else {
+            selectedStockId = stk.id;
+            buzz(15);
+          }
+          renderStockPalette();
+          renderCalendar();
+        });
+
+        attachLongPress(btn, () => {
+          if (confirm(`ストック「${stk.detail}」を削除しますか？`)) {
+            stocks = stocks.filter(s => s.id !== stk.id);
+            if (selectedStockId === stk.id) selectedStockId = null;
+            saveAll();
+            renderStockPalette();
+          }
+        });
+
+        list.appendChild(btn);
+      });
+
+      const addBtn = el('button', 'stock-add-btn', '＋ 作成');
+      addBtn.type = 'button';
+      addBtn.addEventListener('click', openStockAddModal);
+      list.appendChild(addBtn);
+
+      const badge = $('stampModeBadge');
+      const hint = $('stockHint');
+      if (selectedStockId) {
+        badge.classList.add('active');
+        const activeStk = stocks.find(s => s.id === selectedStockId);
+        hint.textContent = `⚡ 「${activeStk ? activeStk.detail : ''}」の連続配置モード中！日付をタップして追加。もう一度ボタンを押すと終了。`;
+        hint.style.color = 'var(--accent)';
+      } else {
+        badge.classList.remove('active');
+        hint.textContent = 'ストックを選択してから日付をタップすると連続配置できます。';
+        hint.style.color = 'var(--muted)';
+      }
+    }
+
+    function openStockAddModal() {
+      const firstCat = Object.keys(CATEGORIES)[0] || 'その他';
+      const firstDetail = (detailOptions[firstCat] && detailOptions[firstCat][0]) || 'メモ';
+      stockWizard = { category: firstCat, detail: firstDetail, memo: '' };
+      buildStockCategoryGrid();
+      buildStockDetailGrid(firstCat);
+      $('stockMemo').value = '';
+      $('stockAddModal').classList.add('active');
+    }
+
+    function buildStockCategoryGrid() {
+      const grid = $('stockCategoryGrid');
+      grid.innerHTML = '';
+      Object.keys(CATEGORIES).forEach(cat => {
+        const btn = el('button', 'wizard-btn' + (stockWizard.category === cat ? ' selected' : ''), `${getCatIcon(cat)} ${cat}`);
+        btn.type = 'button';
+        btn.dataset.cat = cat;
+        btn.addEventListener('click', () => {
+          stockWizard.category = cat;
+          stockWizard.detail = (detailOptions[cat] && detailOptions[cat][0]) || 'メモ';
+          buildStockCategoryGrid();
+          buildStockDetailGrid(cat);
+        });
+        grid.appendChild(btn);
+      });
+
+      const addCatBtn = el('button', 'wizard-btn add-custom-btn', '＋ カテゴリ追加');
+      addCatBtn.type = 'button';
+      addCatBtn.addEventListener('click', () => openCustomPromptModal('category', null, (newCat) => {
+        stockWizard.category = newCat;
+        stockWizard.detail = detailOptions[newCat][0];
+        buildStockCategoryGrid();
+        buildStockDetailGrid(newCat);
+      }));
+      grid.appendChild(addCatBtn);
+    }
+
+    function buildStockDetailGrid(cat) {
+      const grid = $('stockDetailGrid');
+      grid.innerHTML = '';
+      (detailOptions[cat] || ['メモ']).forEach(opt => {
+        const btn = el('button', 'wizard-btn' + (stockWizard.detail === opt ? ' selected' : ''), opt);
+        btn.type = 'button';
+        btn.dataset.cat = cat;
+        btn.addEventListener('click', () => {
+          stockWizard.detail = opt;
+          buildStockDetailGrid(cat);
+        });
+        grid.appendChild(btn);
+      });
+
+      const addDetailBtn = el('button', 'wizard-btn add-custom-btn', '＋ 詳細追加');
+      addDetailBtn.type = 'button';
+      addDetailBtn.addEventListener('click', () => openCustomPromptModal('detail', cat, (newDetail) => {
+        stockWizard.detail = newDetail;
+        buildStockDetailGrid(cat);
+      }));
+      grid.appendChild(addDetailBtn);
+    }
+
+    $('saveStockBtn').addEventListener('click', () => {
+      stockWizard.memo = $('stockMemo').value.trim();
+      const newStk = { id: 'stk_' + uid(), ...stockWizard };
+      stocks.push(newStk);
+      saveAll();
+      $('stockAddModal').classList.remove('active');
+      renderStockPalette();
+      showToast('ストックに追加したよ！パレットから選んでポンポン配置できるよ！');
+    });
+
+    $('closeStockModal').addEventListener('click', () => {
+      $('stockAddModal').classList.remove('active');
+    });
+
+    /* ==========================================
+       9. カレンダー
+       ========================================== */
+    function renderCalendar() {
+      const { y, m } = calMonth;
+      $('currentMonthTitle').textContent = `${y}年 ${m + 1}月`;
+
+      const firstDay = new Date(y, m, 1).getDay();
+      const lastDate = new Date(y, m + 1, 0).getDate();
+      const body = $('calendarBody');
+      body.innerHTML = '';
+
+      const today = todayStr();
+      const tomorrow = addDays(today, 1);
+      let counter = 1;
+
+      for (let i = 0; i < 6; i++) {
+        const row = document.createElement('tr');
+        let hasDate = false;
+        for (let j = 0; j < 7; j++) {
+          const cell = document.createElement('td');
+          if ((i === 0 && j < firstDay) || counter > lastDate) {
+            cell.className = 'empty';
+          } else {
+            hasDate = true;
+            const dateStr = `${y}-${pad(m + 1)}-${pad(counter)}`;
+            const items = sortItems(schedules[dateStr] || []);
+            if (j === 0) cell.classList.add('sun');
+            if (j === 6) cell.classList.add('sat');
+            if (dateStr === today) cell.classList.add('today');
+            if (dateStr === tomorrow) cell.classList.add('tomorrow');
+
+            if (selectedStockId) cell.classList.add('stamp-target');
+
+            const top = el('div', 'day-top');
+            top.appendChild(el('span', 'day-number', String(counter)));
+            if (items.some(i2 => !i2.done && isHomework(i2))) top.appendChild(el('span', 'hw-flag', '宿'));
+            cell.appendChild(top);
+
+            const chips = el('div', 'chips');
+            items.slice(0, 6).forEach(item => {
+              const chip = el('span', 'cal-chip' + (item.done ? ' done' : ''), getCatIcon(item.category));
+              chip.dataset.cat = item.category;
+              chip.title = itemLabel(item);
+              attachLongPress(chip, () => openEditWizard(item.id));
+              chips.appendChild(chip);
+            });
+            if (items.length > 6) chips.appendChild(el('span', 'cal-more', `+${items.length - 6}`));
+            cell.appendChild(chips);
+
+            cell.addEventListener('click', () => handleDateClick(dateStr));
+            counter++;
+          }
+          row.appendChild(cell);
+        }
+        if (hasDate) body.appendChild(row);
+      }
+    }
+
+    function handleDateClick(dateStr) {
+      if (selectedStockId) {
+        const stk = stocks.find(s => s.id === selectedStockId);
+        if (!stk) return;
+        const newItem = { id: uid(), category: stk.category, detail: stk.detail, memo: stk.memo, done: false, doneAt: null };
+        if (!schedules[dateStr]) schedules[dateStr] = [];
+        schedules[dateStr].push(newItem);
+        saveAll();
+        buzz(25);
+        renderCalendar();
+        renderHomeSections();
+        showToast(`${labelMD(dateStr)} に「${stk.detail}」を追加！`, { duration: 1800 });
+        return;
+      }
+
+      openDateAction(dateStr);
+    }
+
+    function setupCalendarNav() {
+      $('prevMonthBtn').addEventListener('click', () => {
+        calMonth = calMonth.m === 0 ? { y: calMonth.y - 1, m: 11 } : { y: calMonth.y, m: calMonth.m - 1 };
+        renderCalendar();
+      });
+      $('nextMonthBtn').addEventListener('click', () => {
+        calMonth = calMonth.m === 11 ? { y: calMonth.y + 1, m: 0 } : { y: calMonth.y, m: calMonth.m + 1 };
+        renderCalendar();
+      });
+      $('todayBtn').addEventListener('click', () => {
+        const n = new Date();
+        calMonth = { y: n.getFullYear(), m: n.getMonth() };
+        renderCalendar();
+      });
+    }
+
+    function openDateAction(dateStr) {
+      if (schedules[dateStr] && schedules[dateStr].length > 0) openDetailModal(dateStr);
+      else openAddWizard(dateStr);
+    }
+
+    /* ==========================================
+       10. 詳細モーダル & ウィザード
+       ========================================== */
+    function openDetailModal(dateStr) {
+      $('detailModalTitle').textContent = `${labelMD(dateStr)} の予定`;
+      $('detailModal').dataset.date = dateStr;
+      renderDetailList(dateStr);
+      $('detailModal').classList.add('active');
+    }
+
+    function renderDetailList(dateStr) {
+      const listEl = $('scheduleDetailList');
+      listEl.innerHTML = '';
+      const list = schedules[dateStr] || [];
+
+      if (list.length === 0) {
+        listEl.appendChild(el('p', 'section-desc', '予定はありません。'));
+      }
+      list.forEach(item => {
+        const row = el('div', 'schedule-item' + (item.done ? ' done' : ''));
+        const left = el('div', 'left');
+        const icon = el('span', 'cat-icon', getCatIcon(item.category));
+        icon.dataset.cat = item.category;
+        left.appendChild(icon);
+        const text = el('div');
+        text.appendChild(el('div', 'task-title', itemLabel(item) + (item.done ? ' ✓' : '')));
+        if (item.memo) text.appendChild(el('div', 'task-meta', item.memo));
+        left.appendChild(text);
+        row.appendChild(left);
+
+        const del = el('button', 'schedule-item-btn', '削除');
+        del.type = 'button';
+        del.addEventListener('click', () => deleteSchedule(dateStr, item.id));
+        row.appendChild(del);
+
+        attachLongPress(left, () => { $('detailModal').classList.remove('active'); openEditWizard(item.id); });
+        listEl.appendChild(row);
+      });
+
+      if (list.length) listEl.appendChild(el('p', 'hint', '予定を長押しすると修正できるよ'));
+
+      const addBtn = el('button', 'submit-btn detail-add-btn', '＋ さらに予定を追加する');
+      addBtn.type = 'button';
+      addBtn.addEventListener('click', () => {
+        $('detailModal').classList.remove('active');
+        openAddWizard(dateStr);
+      });
+      listEl.appendChild(addBtn);
+    }
+
+    function deleteSchedule(dateStr, id) {
+      const removed = removeItem(id);
+      if (!removed) return;
+      saveAll();
+      renderAll();
+      if ($('detailModal').classList.contains('active')) renderDetailList(dateStr);
+      showToast('削除したよ', {
+        actionLabel: '元に戻す',
+        onAction: () => {
+          restoreItem(removed);
+          saveAll();
+          renderAll();
+          if ($('detailModal').classList.contains('active')) renderDetailList(dateStr);
+        }
+      });
+    }
+
+    function sortedByUsage(list, keyFn) {
+      return list
+        .map((v, i) => ({ v, i, n: usage[keyFn(v)] || 0 }))
+        .sort((a, b) => b.n - a.n || a.i - b.i)
+        .map(x => x.v);
+    }
+
+    function openCustomPromptModal(type, targetCat, callback) {
+      customPromptCallback = callback;
+      const modal = $('customPromptModal');
+      const emojiGroup = $('emojiInputGroup');
+      const nameInput = $('customNameInput');
+      const emojiInput = $('customEmojiInput');
+
+      nameInput.value = '';
+      emojiInput.value = '';
+
+      if (type === 'category') {
+        $('customPromptTitle').textContent = '新しいカテゴリを作成';
+        emojiGroup.classList.remove('hidden');
+      } else {
+        $('customPromptTitle').textContent = `「${targetCat}」に詳細を追加`;
+        emojiGroup.classList.add('hidden');
+      }
+
+      modal.dataset.type = type;
+      modal.dataset.targetCat = targetCat || '';
+      modal.classList.add('active');
+      setTimeout(() => nameInput.focus(), 100);
+    }
+
+    $('saveCustomPromptBtn').addEventListener('click', () => {
+      const modal = $('customPromptModal');
+      const type = modal.dataset.type;
+      const targetCat = modal.dataset.targetCat;
+      const name = $('customNameInput').value.trim();
+
+      if (!name) { alert('名前を入力してください'); return; }
+
+      if (type === 'category') {
+        if (CATEGORIES[name]) { alert('そのカテゴリはすでに存在します'); return; }
+        const emoji = $('customEmojiInput').value.trim() || '📝';
+        CATEGORIES[name] = { icon: emoji };
+        detailOptions[name] = ['予定あり', 'メモ'];
+      } else {
+        if (!detailOptions[targetCat]) detailOptions[targetCat] = [];
+        if (detailOptions[targetCat].includes(name)) { alert('その選択肢はすでに存在します'); return; }
+        detailOptions[targetCat].push(name);
+      }
+
+      saveAll();
+      modal.classList.remove('active');
+      if (customPromptCallback) customPromptCallback(name);
+    });
+
+    $('closeCustomPrompt').addEventListener('click', () => {
+      $('customPromptModal').classList.remove('active');
+    });
+
+    function openAddWizard(dateStr) {
+      wizard = { mode: 'add', id: null, date: dateStr || todayStr(), category: '', detail: '', memo: '' };
+      openWizard();
+    }
+
+    function openEditWizard(id) {
+      const f = findItem(id);
+      if (!f) return;
+      wizard = { mode: 'edit', id, date: f.date, category: f.item.category, detail: f.item.detail, memo: f.item.memo };
+      openWizard();
+    }
+
+    function openWizard() {
+      const edit = wizard.mode === 'edit';
+      $('scheduleMemo').value = wizard.memo;
+      $('saveAsStockCheck').checked = false;
+      $('stockSaveOption').classList.toggle('hidden', edit);
+
+      $('submitScheduleBtn').textContent = edit ? '保存する' : '登録する';
+      $('deleteFromEditBtn').classList.toggle('hidden', !edit);
+      $('skipToSave1').classList.toggle('hidden', !edit);
+      $('skipToSave2').classList.toggle('hidden', !edit);
+      buildCategoryGrid();
+      if (wizard.category) buildDetailGrid(wizard.category);
+      refreshDateChips();
+      goToStep(1);
+      $('addModal').classList.add('active');
+    }
+
+    function updateWizardTitle() {
+      $('selectedDateTitle').textContent = `${labelMD(wizard.date)} の予定を${wizard.mode === 'edit' ? '修正' : '追加'}`;
+    }
+
+    function refreshDateChips() {
+      const today = todayStr();
+      const offsets = { 0: today, 1: addDays(today, 1), 7: addDays(today, 7) };
+      let matched = false;
+      document.querySelectorAll('#dateChips .date-chip[data-offset]').forEach(chip => {
+        const on = offsets[chip.dataset.offset] === wizard.date;
+        chip.classList.toggle('selected', on);
+        if (on) matched = true;
+      });
+      $('otherDateChip').classList.toggle('selected', !matched);
+      $('otherDateText').textContent = matched ? '📅 他の日' : `📅 ${labelMD(wizard.date)}`;
+      $('wizardDateInput').value = wizard.date;
+      updateWizardTitle();
+    }
+
+    function buildCategoryGrid() {
+      const grid = $('categoryGrid');
+      grid.innerHTML = '';
+      sortedByUsage(Object.keys(CATEGORIES), c => 'c:' + c).forEach(cat => {
+        const icon = getCatIcon(cat);
+        const btn = el('button', 'wizard-btn' + (wizard.category === cat ? ' selected' : ''), `${icon} ${cat}`);
+        btn.type = 'button';
+        btn.dataset.cat = cat;
+        btn.addEventListener('click', () => {
+          if (wizard.category !== cat) wizard.detail = '';
+          wizard.category = cat;
+          buildDetailGrid(cat);
+          goToStep(2);
+        });
+
+        if (!DEFAULT_CATEGORIES[cat]) {
+          attachLongPress(btn, () => {
+            if (confirm(`カテゴリ「${cat}」を削除しますか？`)) {
+              delete CATEGORIES[cat];
+              delete detailOptions[cat];
+              if (wizard.category === cat) wizard.category = '';
+              saveAll();
+              buildCategoryGrid();
+            }
+          });
+        }
+
+        grid.appendChild(btn);
+      });
+
+      const addCatBtn = el('button', 'wizard-btn add-custom-btn', '＋ カテゴリ追加');
+      addCatBtn.type = 'button';
+      addCatBtn.addEventListener('click', () => openCustomPromptModal('category', null, (newCat) => {
+        wizard.category = newCat;
+        wizard.detail = detailOptions[newCat][0];
+        buildCategoryGrid();
+        buildDetailGrid(newCat);
+        goToStep(2);
+      }));
+      grid.appendChild(addCatBtn);
+    }
+
+    function buildDetailGrid(category) {
+      const grid = $('detailGrid');
+      grid.innerHTML = '';
+      const options = sortedByUsage(detailOptions[category] || ['メモ'], d => `d:${category}|${d}`);
+      options.forEach(opt => {
+        const btn = el('button', 'wizard-btn' + (wizard.detail === opt ? ' selected' : ''), opt);
+        btn.type = 'button';
+        btn.dataset.cat = category;
+        btn.addEventListener('click', () => {
+          wizard.detail = opt;
+          goToStep(3);
+        });
+
+        if (!DEFAULT_DETAILS[category] || !DEFAULT_DETAILS[category].includes(opt)) {
+          attachLongPress(btn, () => {
+            if (confirm(`「${opt}」を削除しますか？`)) {
+              detailOptions[category] = detailOptions[category].filter(x => x !== opt);
+              if (wizard.detail === opt) wizard.detail = '';
+              saveAll();
+              buildDetailGrid(category);
+            }
+          });
+        }
+
+        grid.appendChild(btn);
+      });
+
+      const addDetailBtn = el('button', 'wizard-btn add-custom-btn', '＋ 詳細追加');
+      addDetailBtn.type = 'button';
+      addDetailBtn.addEventListener('click', () => openCustomPromptModal('detail', category, (newDetail) => {
+        wizard.detail = newDetail;
+        buildDetailGrid(category);
+        goToStep(3);
+      }));
+      grid.appendChild(addDetailBtn);
+    }
+
+    function goToStep(n) {
+      document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.step-dot').forEach(d => d.classList.remove('active'));
+      $(`step${n}`).classList.add('active');
+      for (let i = 1; i <= n; i++) $(`dot${i}`).classList.add('active');
+      if (n === 3) {
+        $('wizardSummary').textContent = `${labelMD(wizard.date)} ${wizard.category}・${wizard.detail}`;
+      }
+    }
+
+    function closeAddModal() { $('addModal').classList.remove('active'); }
+
+    function setupWizardEvents() {
+      document.querySelectorAll('#dateChips .date-chip[data-offset]').forEach(chip => {
+        chip.addEventListener('click', () => {
+          wizard.date = addDays(todayStr(), Number(chip.dataset.offset));
+          refreshDateChips();
+        });
+      });
+      $('wizardDateInput').addEventListener('change', (e) => {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) {
+          wizard.date = e.target.value;
+          refreshDateChips();
+        }
+      });
+      $('backToStep1').addEventListener('click', () => goToStep(1));
+      $('backToStep2').addEventListener('click', () => goToStep(2));
+      $('skipToSave1').addEventListener('click', () => { if (wizard.category && wizard.detail) goToStep(3); });
+      $('skipToSave2').addEventListener('click', () => { if (wizard.category && wizard.detail) goToStep(3); });
+      $('submitScheduleBtn').addEventListener('click', submitWizard);
+      $('deleteFromEditBtn').addEventListener('click', () => {
+        const date = wizard.date;
+        const id = wizard.id;
+        closeAddModal();
+        deleteSchedule(date, id);
+      });
+      $('scheduleMemo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitWizard(); } });
+    }
+
+    function submitWizard() {
+      if (!wizard || !wizard.category || !wizard.detail) return;
+      wizard.memo = $('scheduleMemo').value.trim();
+
+      if (wizard.mode === 'edit') {
+        const f = findItem(wizard.id);
+        if (!f) { closeAddModal(); return; }
+        f.item.category = wizard.category;
+        f.item.detail = wizard.detail;
+        f.item.memo = wizard.memo;
+        if (f.date !== wizard.date) {
+          schedules[f.date].splice(f.index, 1);
+          if (schedules[f.date].length === 0) delete schedules[f.date];
+          if (!schedules[wizard.date]) schedules[wizard.date] = [];
+          schedules[wizard.date].push(f.item);
+        }
+        saveAll();
+        closeAddModal();
+        renderAll();
+        showToast('修正したよ ✏️');
+        return;
+      }
+
+      comebackDays = 0;
+      const baseItem = { id: uid(), category: wizard.category, detail: wizard.detail, memo: wizard.memo, done: false, doneAt: null };
+
+      if (!schedules[wizard.date]) schedules[wizard.date] = [];
+      schedules[wizard.date].push(baseItem);
+
+      usage['c:' + baseItem.category] = (usage['c:' + baseItem.category] || 0) + 1;
+      usage[`d:${baseItem.category}|${baseItem.detail}`] = (usage[`d:${baseItem.category}|${baseItem.detail}`] || 0) + 1;
+
+      if ($('saveAsStockCheck').checked) {
+        const exists = stocks.some(s => s.category === baseItem.category && s.detail === baseItem.detail && s.memo === baseItem.memo);
+        if (!exists) {
+          stocks.push({ id: 'stk_' + uid(), category: baseItem.category, detail: baseItem.detail, memo: baseItem.memo });
+        }
+      }
+
+      saveAll();
+      closeAddModal();
+      renderAll();
+
+      showToast('登録したよ！', {
+        actionLabel: '元に戻す',
+        onAction: () => {
+          removeItem(baseItem.id);
+          saveAll();
+          renderAll();
+        },
+        duration: 4000
+      });
+    }
+
+    /* ==========================================
+       11. 相棒設定＆テストツール
+       ========================================== */
+    function openProfile(firstRun) {
+      profileFirstRun = firstRun;
+      profileDraft = { style: profile.style, call: profile.call };
+      $('profileTitle').textContent = firstRun ? '相棒を選ぼう' : '相棒の設定';
+      $('profileDesc').textContent = firstRun
+        ? '予定のことを、そばで教えてくれる相棒だよ。あとから変えられるよ。'
+        : 'キャラや呼ばれ方を変えられるよ。';
+      $('profileSaveBtn').textContent = firstRun ? 'はじめる' : '決定';
+      $('closeProfileModal').classList.toggle('hidden', firstRun);
+      renderProfileChoices();
+      $('profileModal').classList.add('active');
+    }
+
+    function renderProfileChoices() {
+      const list = $('characterList');
+      list.innerHTML = '';
+      Object.keys(PARTNERS).forEach(key => {
+        const p = PARTNERS[key];
+        const card = el('button', 'character-card' + (profileDraft.style === key ? ' selected' : ''));
+        card.type = 'button';
+
+        // 選択画面の丸アイコンにも画像をセット
+        const face = el('span', 'face');
+        if (p.imgFile) {
+          const img = el('img', 'face-img');
+          img.src = p.imgFile;
+          img.alt = p.name;
+          face.appendChild(img);
+        } else {
+          face.textContent = p.avatar;
+        }
+        card.appendChild(face);
+
+        const txt = el('span');
+        const nameLine = el('div', 'name', p.name);
+        nameLine.appendChild(el('span', 'tag', ` ${p.tag}`));
+        txt.appendChild(nameLine);
+        txt.appendChild(el('div', 'sample', `「${fill(p.sample, { call: profileDraft.call })}」`));
+        card.appendChild(txt);
+        card.addEventListener('click', () => { profileDraft.style = key; renderProfileChoices(); });
+        list.appendChild(card);
+      });
+
+      $('callSection').classList.toggle('hidden', profileDraft.style !== '執事');
+      const chips = $('callChips');
+      chips.innerHTML = '';
+      CALLS.forEach(c => {
+        const chip = el('button', 'call-chip' + (profileDraft.call === c ? ' selected' : ''), c);
+        chip.type = 'button';
+        chip.addEventListener('click', () => { profileDraft.call = c; renderProfileChoices(); });
+        chips.appendChild(chip);
+      });
+    }
+
+    function setupProfileEvents() {
+      $('partnerAvatar').addEventListener('click', () => openProfile(false));
+      $('closeProfileModal').addEventListener('click', () => $('profileModal').classList.remove('active'));
+      $('profileSaveBtn').addEventListener('click', () => {
+        profile.style = profileDraft.style;
+        profile.call = profileDraft.call;
+        profile.setupDone = true;
+        saveAll();
+        $('profileModal').classList.remove('active');
+        bubbleOverride = null;
+        cachedMessage = { sig: '', text: '' };
+        renderHome();
+        const bubble = $('partnerBubble');
+        bubble.classList.remove('pop'); void bubble.offsetWidth; bubble.classList.add('pop');
+        if (profileFirstRun) afterStart();
+      });
+      $('partnerBubble').addEventListener('click', () => {
+        bubbleOverride = null;
+        getMessage(true);
+        renderPartner(true);
+      });
+
+      $('resetAllDataBtn').addEventListener('click', () => {
+        if (confirm('すべての予定・スタンプ・設定データを初期化しますか？（※元に戻せません）')) {
+          localStorage.clear();
+          schedules = {};
+          stocks = DEFAULT_STOCKS;
+          CATEGORIES = DEFAULT_CATEGORIES;
+          detailOptions = DEFAULT_DETAILS;
+          stampCount = 0;
+          usage = {};
+          profile = { style: "執事", call: "ご主人様", setupDone: false };
+          cachedMessage = { sig: '', text: '' };
+          saveAll();
+          $('profileModal').classList.remove('active');
+          renderAll();
+          showToast('すべてのデータを初期化しました！');
+          openProfile(true);
+        }
+      });
+    }
+
+    function setupAffinityTest() {
+      $('btnAffinityTest').addEventListener('click', () => {
+        stampCount = 49;
+        saveAll();
+        cachedMessage = { sig: '', text: '' };
+        renderAll();
+        showToast(`⚡ 親密度MAX(Lv.4) & スタンプ残り1個（9/10）に設定したよ！`);
+      });
+    }
+
+    /* ==========================================
+       12. トースト ＆ 全体管理
+       ========================================== */
+    function showToast(message, opts = {}) {
+      const container = $('toastContainer');
+      while (container.children.length >= 3) container.firstChild.remove();
+
+      const toast = el('div', 'toast');
+      toast.appendChild(el('span', '', message));
+      const dismiss = () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 400);
+      };
+      if (opts.actionLabel && opts.onAction) {
+        const btn = el('button', 'toast-action', opts.actionLabel);
+        btn.type = 'button';
+        btn.addEventListener('click', () => { dismiss(); opts.onAction(); });
+        toast.appendChild(btn);
+      }
+      container.appendChild(toast);
+      setTimeout(() => toast.classList.add('show'), 10);
+      setTimeout(dismiss, opts.duration || 4000);
+    }
+
+    function renderAll() {
+      lastRenderedDay = todayStr();
+      renderHome();
+      renderStockPalette();
+      renderCalendar();
+    }
+
+    function switchTab(name) {
+      const isHome = name === 'home';
+      $('homeView').classList.toggle('active', isHome);
+      $('calendarView').classList.toggle('active', !isHome);
+      $('tabHome').classList.toggle('active', isHome);
+      $('tabCalendar').classList.toggle('active', !isHome);
+      document.body.classList.toggle('on-calendar', !isHome);
+      if (!isHome) {
+        const n = new Date();
+        calMonth = { y: n.getFullYear(), m: n.getMonth() };
+      }
+      renderAll();
+      window.scrollTo(0, 0);
+    }
+
+    function setupNavigation() {
+      $('tabHome').addEventListener('click', () => switchTab('home'));
+      $('tabCalendar').addEventListener('click', () => switchTab('calendar'));
+      $('fabAdd').addEventListener('click', () => openAddWizard(todayStr()));
+    }
+
+    function setupModalCloseEvents() {
+      $('closeAddModal').addEventListener('click', closeAddModal);
+      $('closeDetailModal').addEventListener('click', () => $('detailModal').classList.remove('active'));
+      window.addEventListener('click', (e) => {
+        if (Date.now() < ignoreBackdropUntil) return;
+        if (e.target.classList && e.target.classList.contains('modal')) {
+          if (e.target.id === 'profileModal' && profileFirstRun) return;
+          e.target.classList.remove('active');
+        }
+      });
+    }
+
+    function updateClock() {
+      const now = new Date();
+      $('digitalClock').textContent =
+        `${now.getFullYear()}/${pad(now.getMonth() + 1)}/${pad(now.getDate())} (${DAY_NAMES[now.getDay()]}) ` +
+        `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      if (lastRenderedDay && lastRenderedDay !== todayStr()) {
+        cachedMessage = { sig: '', text: '' };
+        renderAll();
+      }
+    }
+
+    function afterStart() {
+      cleanupOldDone();
+      renderAll();
+    }
+
+    /* ==========================================
+       13. 起動
+       ========================================== */
+    document.addEventListener('DOMContentLoaded', () => {
+      const lastOpen = load('lastOpen', null);
+      if (lastOpen && /^\d{4}-\d{2}-\d{2}$/.test(lastOpen)) {
+        const diff = daysBetween(lastOpen, todayStr());
+        comebackDays = diff >= 3 ? diff : 0;
+      }
+      save('lastOpen', todayStr());
+
+      cleanupOldDone();
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      setupNavigation();
+      setupCalendarNav();
+      setupWizardEvents();
+      setupModalCloseEvents();
+      setupProfileEvents();
+      setupAffinityTest();
+
+      renderAll();
+      saveAll();
+
+      if (!profile.setupDone) openProfile(true);
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          renderAll();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
